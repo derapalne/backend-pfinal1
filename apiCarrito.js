@@ -1,7 +1,7 @@
-const ProductosAPI = require("./apiProductos");
+const fs = require("fs");
 
 class CarritoAPI {
-    static carritoId = 0;
+    static carritoId = 1;
 
     constructor() {
         this.carritos = [];
@@ -31,15 +31,21 @@ class CarritoAPI {
         }
     }
 
-    getCarritoById(id) {
+    async getCarritoById(id) {
+        this.carritos = await this.cargar();
         const indexCarrito = this.carritos.findIndex((c) => c.id == id);
         return this.carritos[indexCarrito];
     }
 
     async agregarProducto(id, producto) {
+        console.log({producto});
         const indexCarrito = this.carritos.findIndex((c) => c.id == id);
-        this.carritos[indexCarrito].productos.push(producto);
-        await this.guardar();
+        if(indexCarrito != -1) {
+            this.carritos[indexCarrito].productos.push(producto);
+            await this.guardar();
+        } else {
+            return "Id inexistente.";
+        }
     }
 
     async borrarProducto(id, idProd) {

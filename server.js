@@ -1,3 +1,4 @@
+const config = require('./config');
 const ProductosApi = require("./apiProductos.js");
 const CarritosAPI = require("./apiCarrito");
 const express = require("express");
@@ -9,7 +10,7 @@ const app = express();
 const productosApi = new ProductosApi();
 const carritosApi = new CarritosAPI();
 
-const PORT = 8080;
+const PORT = config.PORT;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -33,10 +34,12 @@ routerProd.get("/:id?", async (req, res) => {
 // Para incorporar productos al listado
 // ADMIN
 routerProd.post("/", async (req, res) => {
+    console.log("post");
     const admin = req.body.admin;
     const producto = req.body.producto;
     if (admin) {
         const prodId = await productosApi.addProducto(producto);
+        console.log({prodId});
         res.send(JSON.stringify(prodId));
     } else {
         res.send({ error: -1, descripcion: "Ruta /api/productos/ Método POST no autorizado" });
@@ -45,12 +48,12 @@ routerProd.post("/", async (req, res) => {
 
 // Actualiza un producto por su ID
 // ADMIN
-routerProd.put("/:id", (req, res) => {
+routerProd.put("/:id", async (req, res) => {
     const admin = req.body.admin;
     const id = req.params.id;
     const producto = req.body.producto;
     if (admin) {
-        const prodId = productosApi.setProductoById(id, producto);
+        const prodId = await productosApi.setProductoById(id, producto);
         res.send(prodId);
     } else {
         res.send({ error: -1, descripcion: "Ruta /api/productos/ Método PUT no autorizado" });
@@ -59,11 +62,11 @@ routerProd.put("/:id", (req, res) => {
 
 // Borra un producto por su ID
 // ADMIN
-routerProd.delete("/:id", (req, res) => {
+routerProd.delete("/:id", async (req, res) => {
     const admin = req.body.admin;
     const id = req.params.id;
     if (admin) {
-        const prodId = productosApi.deleteProductoById(id);
+        const prodId = await productosApi.deleteProductoById(id);
         res.send(prodId);
     } else {
         res.send({ error: -1, descripcion: "Ruta /api/productos/ Método DELETE no autorizado" });
@@ -73,20 +76,20 @@ routerProd.delete("/:id", (req, res) => {
 // ---------------------------------------------- ROUTER CARRITO ------------------------//
 
 // Crea un carrito y devuelve su ID
-routerCart.post("/", (req, res) => {
-    res.send(JSON.stringify(carritosApi.crearCarrito()));
+routerCart.post("/", async (req, res) => {
+    res.send(JSON.stringify(await carritosApi.crearCarrito()));
 });
 
 // Vacía un carrito y lo elimina
-routerCart.delete("/:id", (req, res) => {
+routerCart.delete("/:id", async (req, res) => {
     const id = req.params.id;
-    res.send(JSON.stringify(carritosApi.borrarCarrito(id)));
+    res.send(JSON.stringify(await carritosApi.borrarCarrito(id)));
 });
 
 // Me permite listar todos los productos guardados en el carrito
-routerCart.get("/:id/productos", (req, res) => {
+routerCart.get("/:id/productos", async (req, res) => {
     const id = req.params.id;
-    const carrito = carritosApi.getCarritoById(id);
+    const carrito = await carritosApi.getCarritoById(id);
     if (carrito) {
         res.send(JSON.stringify(carrito.productos));
     } else {
@@ -95,15 +98,19 @@ routerCart.get("/:id/productos", (req, res) => {
 });
 
 // Para incorporar productos al carrito por su ID de producto
-routerCart.post("/:id/productos", (req, res) => {
+routerCart.post("/:id/productos", async (req, res) => {
     const idCart = req.params.id;
     const idProd = req.body.idProd;
-    const producto = productosApi.getProductoById(idProd);
+    const producto = await productosApi.getProductoById(idProd);
     if (producto.error) {
         res.send(JSON.stringify(producto));
     } else {
-        carritosApi.agregarProducto(idCart, producto);
-        res.send(JSON.stringify("Producto agregado."));
+        const carritoReturn = await carritosApi.agregarProducto(idCart, producto);
+        if(carritoReturn) {
+            res.send(JSON.stringify(carritoReturn));
+        } else {
+            res.send(JSON.stringify("Producto agregado."));
+        }
     }
 });
 

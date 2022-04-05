@@ -21,7 +21,8 @@ class ProductosAPI {
         }
     }
 
-    getProductoById(id) {
+    async getProductoById(id) {
+        this.productos = await this.cargar();
         // Filtrá los productos que tengan id distitnto y retorná el único producto del array -> [0]
         let producto = this.productos.filter((prod) => prod.id == id)[0];
         if (producto != undefined) {
