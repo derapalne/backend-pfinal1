@@ -3,20 +3,18 @@ const fs = require("fs");
 class ProductosAPI {
     constructor() {
         this.productos = [];
-        console.log(Array.isArray(this.productos));
         this.fileName = "productos";
         this.archivo = `${__dirname}/src/${this.fileName}.kirby`;
-
-        this.productos = this.cargar();
     }
 
     static contadorId = 1;
 
-    addProducto(producto) {
+    async addProducto(producto) {
         if (this.check(producto)) {
             producto.id = ProductosAPI.contadorId++;
             producto.timestamp = Date.now();
             this.productos.push(producto);
+            await this.guardar();
             return producto.id;
         } else {
             return { error: "El producto no cumple los requisitos" };
@@ -33,12 +31,12 @@ class ProductosAPI {
         }
     }
 
-    getAll() {
-        console.log(this.productos);
+    async getAll() {
+        this.productos = await this.cargar();
         return this.productos;
     }
 
-    setProductoById(id, producto) {
+    async setProductoById(id, producto) {
         if (this.check(producto)) {
             for (let i = 0; i < this.productos.length; i++) {
                 if (this.productos[i].id == id) {
@@ -48,16 +46,17 @@ class ProductosAPI {
                     return producto.id;
                 }
             }
+            await this.guardar();
         } else {
             return { error: "El producto no cumple con los requisitos" };
         }
     }
 
-    deleteProductoById(id) {
+    async deleteProductoById(id) {
         const prodEliminado = this.productos.filter((prod) => prod.id == id);
         if (prodEliminado.length > 0) {
             this.productos = this.productos.filter((prod) => prod.id != id);
-            this.guardar();
+            await this.guardar();
             return "Producto borrado exitosamente";
         } else {
             return { error: "El id no existe!" };
@@ -84,6 +83,10 @@ class ProductosAPI {
         } catch (e) {
             console.log(`Error cargando datos desde ${this.fileName}`, e);
         }
+    }
+
+    async inicializar() {
+      this.productos = await this.cargar();
     }
 
     check(producto) {

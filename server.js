@@ -1,6 +1,5 @@
 const ProductosApi = require("./apiProductos.js");
 const CarritosAPI = require("./apiCarrito");
-const Archivador = require("./archivador");
 const express = require("express");
 const { Router } = express;
 
@@ -8,9 +7,7 @@ const routerProd = Router();
 const routerCart = Router();
 const app = express();
 const productosApi = new ProductosApi();
-const archProductos = new Archivador('productos');
 const carritosApi = new CarritosAPI();
-const archCarritos = new Archivador('carritos');
 
 const PORT = 8080;
 
@@ -24,22 +21,22 @@ app.use("/api/carrito", routerCart);
 
 // Me permite listar todos los productos disponibles ó un producto por su ID
 // USUARIO + ADMIN
-routerProd.get("/:id?", (req, res) => {
+routerProd.get("/:id?", async (req, res) => {
     const id = req.params.id;
     if (isNaN(id)) {
-        res.send(JSON.stringify(productosApi.getAll()));
+        res.send(JSON.stringify(await productosApi.getAll()));
     } else {
-        res.send(JSON.stringify(productosApi.getProductoById(id)));
+        res.send(JSON.stringify(await productosApi.getProductoById(id)));
     }
 });
 
 // Para incorporar productos al listado
 // ADMIN
-routerProd.post("/", (req, res) => {
+routerProd.post("/", async (req, res) => {
     const admin = req.body.admin;
     const producto = req.body.producto;
     if (admin) {
-        const prodId = productosApi.addProducto(producto);
+        const prodId = await productosApi.addProducto(producto);
         res.send(JSON.stringify(prodId));
     } else {
         res.send({ error: -1, descripcion: "Ruta /api/productos/ Método POST no autorizado" });
@@ -120,9 +117,6 @@ routerCart.delete("/:id/productos/:id_prod", (req, res) => {
 
 // PRUEBAS
 
-//carritosApi.carritos = archCarritos.cargar();
-// productosApi.productos = archProductos.cargar();
-
 // productosApi.addProducto({
 //     nombre: "Guerra Biológica",
 //     descripcion: "Efectivo contra tu vecino molesto.",
@@ -162,12 +156,6 @@ routerCart.delete("/:id/productos/:id_prod", (req, res) => {
 // carritosApi.crearCarrito();
 // carritosApi.crearCarrito();
 // carritosApi.crearCarrito();
-
-// archProductos.guardar(productosApi.getAll());
-// archCarritos.guardar(carritosApi.carritos);
-
-
-console.log(productosApi.productos);
 
 
 // PRENDER EL SERVER jijiji
