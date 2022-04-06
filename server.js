@@ -122,6 +122,14 @@ routerCart.delete("/:id/productos/:id_prod", (req, res) => {
     res.send("El producto fue borrado");
 });
 
+// ERROR 404
+
+app.use(function(req, res, next) {
+    res.status(404).send({error: -2, descripcion: `Url ${req.url}, método ${req.method} no implementado`});
+  });
+
+
+
 // PRUEBAS
 
 // productosApi.addProducto({
