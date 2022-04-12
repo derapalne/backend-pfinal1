@@ -4,7 +4,6 @@ class CarritoAPI {
     static carritoId = 1;
 
     constructor() {
-        this.carritos = [];
         this.fileName = "carritos";
         this.archivo = `${__dirname}/src/${this.fileName}.kirby`;
     }
@@ -15,16 +14,17 @@ class CarritoAPI {
             timestamp: Date.now(),
             productos: [],
         };
-        this.carritos = await this.cargar().then(this.carritos.push(carrito));
-        await this.guardar();
+        const carritos = await this.cargar().then(() => carritos.push(carrito));
+        await this.guardar(carritos);
         return carrito.id;
     }
 
     async borrarCarrito(id) {
-        const oldLenght = this.carritos.length;
-        this.carritos = this.carritos.filter((c) => c.id != id);
-        if (this.carritos.length != oldLenght) {
-            await this.guardar();
+        const carritos = await this.cargar();
+        const oldLenght = carritos.length;
+        carritos = carritos.filter((c) => c.id != id);
+        if (carritos.length != oldLenght) {
+            await this.guardar(carritos);
             return "Carrito elminiado exitosamente";
         } else {
             return "Error al borrar carrito";
@@ -32,33 +32,34 @@ class CarritoAPI {
     }
 
     async getCarritoById(id) {
-        this.carritos = await this.cargar();
-        const indexCarrito = this.carritos.findIndex((c) => c.id == id);
-        return this.carritos[indexCarrito];
+        const carritos = await this.cargar();
+        const indexCarrito = carritos.findIndex((c) => c.id == id);
+        return carritos[indexCarrito];
     }
 
     async agregarProducto(id, producto) {
-        console.log({producto});
-        const indexCarrito = this.carritos.findIndex((c) => c.id == id);
+        const carritos = this.cargar();
+        const indexCarrito = carritos.findIndex((c) => c.id == id);
         if(indexCarrito != -1) {
-            this.carritos[indexCarrito].productos.push(producto);
-            await this.guardar();
+            carritos[indexCarrito].productos.push(producto);
+            await this.guardar(carritos);
         } else {
             return "Id inexistente.";
         }
     }
 
     async borrarProducto(id, idProd) {
-        const indexCarrito = this.carritos.findIndex((c) => c.id == id);
-        this.carritos[indexCarrito].productos = this.carritos[indexCarrito].productos.filter(
+        const carritos = await this.cargar();
+        const indexCarrito = carritos.findIndex((c) => c.id == id);
+        carritos[indexCarrito].productos = carritos[indexCarrito].productos.filter(
             (p) => p.id != idProd
         );
-        await this.guardar();
+        await this.guardar(carritos);
     }
 
-    async guardar() {
+    async guardar(carritos) {
         try {
-            await fs.promises.writeFile(this.archivo, JSON.stringify(this.carritos));
+            await fs.promises.writeFile(this.archivo, JSON.stringify(carritos, null, 2));
             console.log("Guardado con éxito");
         } catch (e) {
             console.log(`Error guardando datos en ${this.fileName}`, e);
@@ -77,9 +78,6 @@ class CarritoAPI {
         }
     }
 
-    async inicializar() {
-        this.carritos = await this.cargar();
-    }
 }
 
 module.exports = CarritoAPI;

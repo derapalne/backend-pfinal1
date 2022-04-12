@@ -1,4 +1,4 @@
-const config = require('./config');
+const config = require("./config");
 const ProductosApi = require("./apiProductos.js");
 const CarritosAPI = require("./apiCarrito");
 const express = require("express");
@@ -25,65 +25,59 @@ app.use("/api/carrito", routerCart);
 routerProd.get("/:id?", async (req, res) => {
     const id = req.params.id;
     if (isNaN(id)) {
-        res.send(JSON.stringify(await productosApi.getAll()));
+        res.status(200).json(await productosApi.getAll());
     } else {
-        res.send(JSON.stringify(await productosApi.getProductoById(id)));
+        const respuesta = await productosApi.getProductoById(id);
+        if (respuesta.error) {
+            res.status(204).json(respuesta);
+        } else {
+            res.status(200).json(respuesta);
+        }
     }
 });
 
 // Para incorporar productos al listado
 // ADMIN
-routerProd.post("/", async (req, res) => {
+routerProd.post("/", isAdmin, async (req, res) => {
     console.log("post");
     const admin = req.body.admin;
-    const producto = req.body.producto;
-    if (admin) {
-        const prodId = await productosApi.addProducto(producto);
-        console.log({prodId});
-        res.send(JSON.stringify(prodId));
-    } else {
-        res.send({ error: -1, descripcion: "Ruta /api/productos/ Método POST no autorizado" });
-    }
+
+    const prodId = await productosApi.addProducto(producto);
+    res.status(201).json(prodId);
 });
 
 // Actualiza un producto por su ID
 // ADMIN
-routerProd.put("/:id", async (req, res) => {
+routerProd.put("/:id", isAdmin, async (req, res) => {
     const admin = req.body.admin;
     const id = req.params.id;
     const producto = req.body.producto;
-    if (admin) {
-        const prodId = await productosApi.setProductoById(id, producto);
-        res.send(prodId);
-    } else {
-        res.send({ error: -1, descripcion: "Ruta /api/productos/ Método PUT no autorizado" });
-    }
+
+    const prodId = await productosApi.setProductoById(id, producto);
+    res.status(201).json(prodId);
 });
 
 // Borra un producto por su ID
 // ADMIN
-routerProd.delete("/:id", async (req, res) => {
+routerProd.delete("/:id", isAdmin, async (req, res) => {
     const admin = req.body.admin;
     const id = req.params.id;
-    if (admin) {
-        const prodId = await productosApi.deleteProductoById(id);
-        res.send(prodId);
-    } else {
-        res.send({ error: -1, descripcion: "Ruta /api/productos/ Método DELETE no autorizado" });
-    }
+
+    const prodId = await productosApi.deleteProductoById(id);
+    res.status(200).json(prodId);
 });
 
 // ---------------------------------------------- ROUTER CARRITO ------------------------//
 
 // Crea un carrito y devuelve su ID
 routerCart.post("/", async (req, res) => {
-    res.send(JSON.stringify(await carritosApi.crearCarrito()));
+    res.status(201).json(await carritosApi.crearCarrito());
 });
 
 // Vacía un carrito y lo elimina
 routerCart.delete("/:id", async (req, res) => {
     const id = req.params.id;
-    res.send(JSON.stringify(await carritosApi.borrarCarrito(id)));
+    res.status(200).json(await carritosApi.borrarCarrito(id));
 });
 
 // Me permite listar todos los productos guardados en el carrito
@@ -91,9 +85,9 @@ routerCart.get("/:id/productos", async (req, res) => {
     const id = req.params.id;
     const carrito = await carritosApi.getCarritoById(id);
     if (carrito) {
-        res.send(JSON.stringify(carrito.productos));
+        res.status(200).json(carrito.getAll());
     } else {
-        res.send("Carrito inexistente");
+        res.status(404).json({ error: "Carrito inexistente" });
     }
 });
 
@@ -103,13 +97,13 @@ routerCart.post("/:id/productos", async (req, res) => {
     const idProd = req.body.idProd;
     const producto = await productosApi.getProductoById(idProd);
     if (producto.error) {
-        res.send(JSON.stringify(producto));
+        res.status(204).json(producto);
     } else {
         const carritoReturn = await carritosApi.agregarProducto(idCart, producto);
-        if(carritoReturn) {
-            res.send(JSON.stringify(carritoReturn));
+        if (carritoReturn) {
+            res.status(204).json(carritoReturn);
         } else {
-            res.send(JSON.stringify("Producto agregado."));
+            res.status(201).json({ mensaje: "Producto agregado." });
         }
     }
 });
@@ -119,16 +113,30 @@ routerCart.delete("/:id/productos/:id_prod", (req, res) => {
     const idCart = req.params.id;
     const idProd = req.params.id_prod;
     carritosApi.borrarProducto(idCart, idProd);
-    res.send("El producto fue borrado");
+    res.status(200).json({ mensaje: "El producto fue borrado" });
 });
 
 // ERROR 404
 
-app.use(function(req, res, next) {
-    res.status(404).send({error: -2, descripcion: `Url ${req.url}, método ${req.method} no implementado`});
-  });
+app.use((err, req, res, next) => {
+    res.status(404).send({
+        error: -2,
+        descripcion: `Url ${req.url}, método ${req.method} no implementado`,
+    });
+});
 
+// ADMIN CHECK
 
+const isAdmin = (req, res, next) => {
+    let admin = false;
+    if (admin) {
+        next();
+    }
+    res.status(203).json({
+        error: -1,
+        descripcion: `Ruta ${req.url} Método ${req.method} no autorizado`,
+    });
+};
 
 // PRUEBAS
 
@@ -172,11 +180,9 @@ app.use(function(req, res, next) {
 // carritosApi.crearCarrito();
 // carritosApi.crearCarrito();
 
-
 // PRENDER EL SERVER jijiji
 
 const server = app.listen(PORT, () => {
     console.log("Servidor escuchando en puerto ", PORT);
 });
 server.on("error", (e) => console.log("Error en el servidor: ", e));
-

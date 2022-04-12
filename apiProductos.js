@@ -2,19 +2,17 @@ const fs = require("fs");
 
 class ProductosAPI {
     constructor() {
-        this.productos = [];
         this.fileName = "productos";
         this.archivo = `${__dirname}/src/${this.fileName}.kirby`;
     }
 
-    static contadorId = 1;
-
     async addProducto(producto) {
         if (this.check(producto)) {
-            producto.id = ProductosAPI.contadorId++;
+            const productos = await this.cargar();
+            producto.id = productos[productos.length-1].id +1;
             producto.timestamp = Date.now();
-            this.productos.push(producto);
-            await this.guardar();
+            productos.push(producto);
+            await this.guardar(productos);
             return producto.id;
         } else {
             return { error: "El producto no cumple los requisitos" };
@@ -22,9 +20,9 @@ class ProductosAPI {
     }
 
     async getProductoById(id) {
-        this.productos = await this.cargar();
+        const productos = await this.cargar();
         // Filtrá los productos que tengan id distitnto y retorná el único producto del array -> [0]
-        let producto = this.productos.filter((prod) => prod.id == id)[0];
+        const producto = productos.filter((prod) => prod.id == id)[0];
         if (producto != undefined) {
             return producto;
         } else {
@@ -39,35 +37,38 @@ class ProductosAPI {
 
     async setProductoById(id, producto) {
         if (this.check(producto)) {
-            for (let i = 0; i < this.productos.length; i++) {
-                if (this.productos[i].id == id) {
+            const productos = await this.cargar();
+            for (let i = 0; i < productos.length; i++) {
+                if (productos[i].id == id) {
                     producto.id = id;
                     producto.timestamp = Date.now();
-                    this.productos[i] = producto;
-                    return producto.id;
+                    productos[i] = producto;
+                    await this.guardar(productos);
+                    return producto;
                 }
             }
-            await this.guardar();
+            
         } else {
             return { error: "El producto no cumple con los requisitos" };
         }
     }
 
     async deleteProductoById(id) {
-        const prodEliminado = this.productos.filter((prod) => prod.id == id);
+        const productos = await this.cargar();
+        const prodEliminado = productos.filter((prod) => prod.id == id);
         if (prodEliminado.length > 0) {
-            this.productos = this.productos.filter((prod) => prod.id != id);
-            await this.guardar();
+            productos = productos.filter((prod) => prod.id != id);
+            await this.guardar(productos);
             return "Producto borrado exitosamente";
         } else {
             return { error: "El id no existe!" };
         }
     }
 
-    async guardar() {
+    async guardar(productos) {
         try {
             //console.log("Guardando en", this.fileName);
-            await fs.promises.writeFile(this.archivo, JSON.stringify(this.productos));
+            await fs.promises.writeFile(this.archivo, JSON.stringify(productos), null, 2);
             //console.log("Guardado con éxito");
         } catch (e) {
             console.log(`Error guardando datos en ${this.fileName}`, e);
@@ -84,10 +85,6 @@ class ProductosAPI {
         } catch (e) {
             console.log(`Error cargando datos desde ${this.fileName}`, e);
         }
-    }
-
-    async inicializar() {
-      this.productos = await this.cargar();
     }
 
     check(producto) {
