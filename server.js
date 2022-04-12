@@ -52,7 +52,6 @@ routerProd.put("/:id", isAdmin, async (req, res) => {
     const admin = req.body.admin;
     const id = req.params.id;
     const producto = req.body.producto;
-
     const prodId = await productosApi.setProductoById(id, producto);
     res.status(201).json(prodId);
 });
